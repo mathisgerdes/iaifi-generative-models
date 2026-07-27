@@ -2,7 +2,7 @@
 
 Canonical alias in every notebook: ``import iaifi_gm as gm``.
 
-Submodules: ``targets`` (spiral/GMM/posterior), ``phi4`` (lattice action +
+Submodules: ``targets`` (spiral/GMM), ``phi4`` (lattice action +
 reference numbers), ``data`` (fashion-MNIST), ``models`` (TimeMLP, SmallUNet),
 ``plotting``, ``checkpoints`` (msgpack nnx.state I/O), ``metrics``
 (energy distance).  All pedagogical code lives in the notebooks — this
