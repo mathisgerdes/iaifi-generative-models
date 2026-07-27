@@ -41,7 +41,7 @@ CKPT = Path("checkpoints/fmnist_diffusion.msgpack")
 FIG = Path("checkpoints/fmnist_diffusion_samples.png")
 # ----------------------------------------------------------------------------
 
-# VP trig schedule (conventions §A): t = 0 noise -> t = 1 data.
+# VP trig schedule; convention: t = 0 noise -> t = 1 data.
 alpha = lambda t: jnp.sin(jnp.pi * t / 2)
 sigma = lambda t: jnp.cos(jnp.pi * t / 2)
 

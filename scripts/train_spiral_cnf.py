@@ -1,9 +1,9 @@
 """Train the tiny spiral CNF (checkpoint manifest: tiny spiral CNF, fallback only).
 
 NB1 §1 trains this fresh in class (~30 s budget); the checkpoint exists only as
-a belt-and-braces fallback if the live train misbehaves.  Stack per the outline:
-``bijx.AutoJacVF`` over a small MLP vector field + ``bijx.ContFlowRK4``, wrapped
-in ``bijx.Transformed`` — samples AND exact log-density.
+a belt-and-braces fallback if the live train misbehaves.  Same stack as the
+notebook: ``bijx.AutoJacVF`` over a small MLP vector field + ``bijx.ContFlowRK4``,
+wrapped in ``bijx.Transformed`` — samples AND exact log-density.
 
 Trained by maximum likelihood (forward KL) on spiral samples.
 
