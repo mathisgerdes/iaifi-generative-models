@@ -1,11 +1,13 @@
 """Shared reverse-KL training loop for the two phi4 flow scripts.
 
 Validated recipe: ``bijx.ConvVF`` with a (5, 5) kernel + free-theory prior
-(``bijx.FreeTheoryScaling``) + ``bijx.ContFlowRK4`` (16 steps), L = 6,
+(``bijx.FreeTheoryScaling``) + ``bijx.ContFlowDiffrax`` (Tsit5, fixed
+dt = 0.05), L = 6,
 ~300 Adam steps with a warmup-cosine LR schedule; loss = reverse KL
 ``mean(log_q + S)`` with ESS as auxiliary metric.  A (3, 3)-kernel /
 white-noise-prior variant does NOT converge in 300 steps — do not change
-kernel or prior without re-validating convergence and the seed-0 collapse.
+kernel, prior, or solver without re-validating convergence and the
+bias-init collapse (see train_phi4_broken.py's docstring).
 """
 
 from __future__ import annotations
@@ -30,8 +32,10 @@ import iaifi_gm as gm
 FREE_PRIOR_M2 = 1.0   # mass^2 of the free-theory prior (UV smoothing)
 
 
-def build_model(vf, L: int, rk4_steps: int, seed: int) -> bijx.Transformed:
-    flow = bijx.ContFlowRK4(vf, steps=rk4_steps)
+def build_model(vf, L: int, dt: float, seed: int) -> bijx.Transformed:
+    # Diffrax solver, fixed step size: its adjoint composes with nnx.jit
+    # (ContFlowRK4's custom adjoint does not -- leaked-tracer error).
+    flow = bijx.ContFlowDiffrax(vf, bijx.DiffraxConfig(dt=dt))
     # Free-theory prior: takes care of damping the high-momentum modes so
     # the conv flow only has to build the double-well / ordering structure.
     # With a plain white-noise IndependentNormal prior the same flow gets
@@ -57,7 +61,7 @@ def train(
     tag: str,
 ) -> None:
     # Warmup-cosine schedule: with only ~300 steps a flat small LR does not
-    # converge; a hot flat LR eventually exploits RK4 integration error
+    # converge; a hot flat LR eventually exploits fixed-step integration error
     # (loss sinks below the free-energy bound while true ESS collapses).
     # Peak lr decayed fully to 0 by n_steps is the stable middle.
     schedule = optax.warmup_cosine_decay_schedule(0.0, lr, 20, n_steps)
@@ -66,10 +70,7 @@ def train(
         tx = optax.chain(optax.clip_by_global_norm(clip), tx)
     optimizer = nnx.Optimizer(model, tx, wrt=nnx.Param)
 
-    # NOTE: no outer @nnx.jit here. bijx's ContFlowRK4 adjoint (odeint_rk4 with
-    # closure_convert) fails under nnx.jit-of-grad with "No constant handler for
-    # DynamicJaxprTracer" (verified on jax 0.9 and 0.11, bijx 1.3.1); the solver
-    # is jitted internally, so plain nnx.value_and_grad is the working pattern.
+    @nnx.jit
     def train_step(model, optimizer):
         def loss_fn(model):
             phi, log_q = model.sample((batch,))

@@ -26,7 +26,7 @@ L = 6
 M2, LAM = gm.phi4.M2, gm.phi4.LAM   # pinned couplings (validated: -1.0, 0.5)
 BATCH = 128
 N_STEPS = 300
-RK4_STEPS = 16
+SOLVER_DT = 0.05  # fixed Tsit5 step size (20 steps, t = 0 -> 1)
 LR = 3e-3        # peak of the warmup-cosine schedule
 CLIP = 1.0       # global-norm gradient clip (stability)
 KERNEL = (5, 5)  # (3, 3) has too few D4 orbit parameters to converge here
@@ -37,7 +37,7 @@ FIG = Path("checkpoints/phi4_equivariant_mag.png")
 
 def main():
     vf = bijx.ConvVF.build(KERNEL, (), rngs=nnx.Rngs(params=SEED))
-    model = build_model(vf, L, RK4_STEPS, SEED)
+    model = build_model(vf, L, SOLVER_DT, SEED)
     train(
         model,
         m2=M2, lam=LAM, batch=BATCH, n_steps=N_STEPS, lr=LR, clip=CLIP,
